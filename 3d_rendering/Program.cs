@@ -16,7 +16,7 @@ namespace _3d_rendering
         {
             //init
             //render vertices
-            var o = Instantiate("plane", new CCoordObj(0, 0, 0), new CCoordObj(0, 0, 0));
+            var o = Instantiate("testobj", new CCoordObj(0, 0, 0), new CCoordObj(0, 0, 0), new CCoordObj(5, 5, 0));
             while (true)
             {
                 RenderRObject(o);
@@ -38,25 +38,50 @@ namespace _3d_rendering
                 {
                     o.cPos.xPos -= 1;
                 }
+                if (k.Key == ConsoleKey.E)
+                {
+                    o.cRot.xPos += CCoordObj.DegreesToRadians(15);
+                }
                 Console.Clear();
 
             }
         }
         //create new prefab
-        RenderObject Instantiate(string type, CCoordObj position, CCoordObj rotation)
+        RenderObject Instantiate(string type, CCoordObj position, CCoordObj rotation, CCoordObj scale)
         {
             if (type == "plane")
             {
                 var o = new RenderObject();
                 var f = new Face();
-                f.vertices.Add(new CCoordObj(0, 0, 3));
-                f.vertices.Add(new CCoordObj(0, 10, 3));
-                f.vertices.Add(new CCoordObj(10, 10, 3));
-                f.vertices.Add(new CCoordObj(10, 0, 3));
+                f.vertices.Add(new CCoordObj(-scale.xPos, -scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(-scale.xPos, scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, -scale.yPos, scale.zPos));
                 f.parentObject = o;
                 o.cPos = position;
                 o.cRot = rotation;
                 o.faces.Add(f);
+                return o;
+            }
+            if (type == "testobj")
+            {
+                var o = new RenderObject();
+                var f = new Face();
+                f.vertices.Add(new CCoordObj(-scale.xPos, -scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(-scale.xPos, scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, -scale.yPos, scale.zPos));
+                f.parentObject = o;
+                o.faces.Add(f);
+                var f2 = new Face();
+                f2.vertices.Add(new CCoordObj(-scale.xPos * 0.2f, -scale.yPos * 0.2f, scale.zPos));
+                f2.vertices.Add(new CCoordObj(-scale.xPos * 0.2f, scale.yPos * 0.2f, scale.zPos));
+                f2.vertices.Add(new CCoordObj(scale.xPos * 0.2f, scale.yPos * 0.2f, scale.zPos));
+                f2.vertices.Add(new CCoordObj(scale.xPos * 0.2f, -scale.yPos * 0.2f, scale.zPos));
+                f2.parentObject = o;
+                o.cPos = position;
+                o.cRot = rotation;
+                o.faces.Add(f2);
                 return o;
             }
             else
@@ -77,7 +102,10 @@ namespace _3d_rendering
         {
             for (int i = 0; i < face.vertices.Count; i++)
             {
-                RenderPosition((int)Math.Round(face.vertices[i].xPos + face.parentObject.cPos.xPos), (int)Math.Round(face.vertices[i].yPos + face.parentObject.cPos.yPos));
+                var pos = face.vertices[i];
+                var summedPos = new CCoordObj(pos.xPos + face.parentObject.cPos.xPos, pos.yPos + face.parentObject.cPos.yPos, pos.zPos + face.parentObject.cPos.zPos);
+                var rotatedPos = CCoordObj.RotatePoint(summedPos, face.parentObject.cPos, face.parentObject.cRot.xPos);
+                RenderPosition((int)Math.Round(rotatedPos.xPos), (int)Math.Round(rotatedPos.yPos));
             }
         }
         //draw at position
@@ -89,6 +117,8 @@ namespace _3d_rendering
             Console.Write("X");
             Console.WriteLine();
         }
+
+
     }
     class RenderObject
     {
@@ -106,6 +136,17 @@ namespace _3d_rendering
             xPos = x;
             yPos = y;
             zPos = z;
+        }
+        public static CCoordObj RotatePoint(CCoordObj point, CCoordObj center, double angle)
+        {
+            var rotatedX = Math.Cos(angle) * (point.xPos - center.xPos) - Math.Sin(angle) * (point.yPos - center.yPos) + center.xPos;
+            var rotatedY = Math.Sin(angle) * (point.xPos - center.xPos) + Math.Cos(angle) * (point.yPos - center.yPos) + center.yPos;
+            return new CCoordObj(rotatedX, rotatedY, 0);
+        }
+        public static double DegreesToRadians(double degrees)
+        {
+            double radians = (Math.PI / 180) * degrees;
+            return radians;
         }
     }
     class Face
