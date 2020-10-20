@@ -16,7 +16,7 @@ namespace _3d_rendering
         {
             //init
             //render vertices
-            var o = Instantiate("testobj", new CCoordObj(10, 10, 0), new CCoordObj(0, 0, 0), new CCoordObj(5, 5, 5));
+            var o = Instantiate("testobj", new CCoordObj(10, 10, 0), new CCoordObj(0, 0, 0), new CCoordObj(6, 6, 0));
             while (true)
             {
                 RenderRObject(o);
