@@ -7,6 +7,7 @@ namespace _3d_rendering
 {
     class Program
     {
+        int renderMode;
         static void Main()
         {
             var p = new Program();
@@ -15,8 +16,24 @@ namespace _3d_rendering
         public void ProgramMain()
         {
             //init
-            //render vertices
-            var o = Instantiate("testobj", new CCoordObj(10, 10, 0), new CCoordObj(0, 0, 0), new CCoordObj(6, 6, 0));
+            //create object
+            var o = Instantiate("plane", new CCoordObj(50, 50, 0), new CCoordObj(0, 0, 0), new CCoordObj(6, 6, 0));
+            //var o = Instantiate("cube", new CCoordObj(10, 10, 0), new CCoordObj(0, 0, 0), new CCoordObj(6, 6, 6));
+            Console.WriteLine("V = vertices only, E = edges only, F = faces only");
+            Console.WriteLine("Please make a selection");
+            var ks = Console.ReadKey();
+            if (ks.Key == ConsoleKey.V)
+            {
+                renderMode = 0;
+            }
+            if (ks.Key == ConsoleKey.E)
+            {
+                renderMode = 1;
+            }
+            if (ks.Key == ConsoleKey.F)
+            {
+                renderMode = 2;
+            }
             while (true)
             {
                 RenderRObject(o);
@@ -83,6 +100,24 @@ namespace _3d_rendering
                 o.faces.Add(f);
                 return o;
             }
+            if (type == "cube")
+            {
+                var o = new RenderObject();
+                var f = new Face();
+                f.vertices.Add(new CCoordObj(-scale.xPos, -scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(-scale.xPos, scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, -scale.yPos, scale.zPos));
+                f.vertices.Add(new CCoordObj(-scale.xPos, -scale.yPos, -scale.zPos));
+                f.vertices.Add(new CCoordObj(-scale.xPos, scale.yPos, -scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, scale.yPos, -scale.zPos));
+                f.vertices.Add(new CCoordObj(scale.xPos, -scale.yPos, -scale.zPos));
+                f.parentObject = o;
+                o.cPos = position;
+                o.cRot = rotation;
+                o.faces.Add(f);
+                return o;
+            }
             if (type == "testobj")
             {
                 //plane with a second smaller plane inside
@@ -125,18 +160,74 @@ namespace _3d_rendering
         //render all verts in a face
         void RenderFace(Face face)
         {
-            for (int i = 0; i < face.vertices.Count; i++)
+            if (renderMode == 0)
             {
-                //move object to center before rotating
-                var sPos = face.parentObject.cPos;
-                face.parentObject.cPos = new CCoordObj(0, 0, 0);
-                var pos = face.vertices[i];
-                var summedPos = new CCoordObj(pos.xPos + face.parentObject.cPos.xPos, pos.yPos + face.parentObject.cPos.yPos, pos.zPos + face.parentObject.cPos.zPos);
-                //rotate vert around object center
-                var rotatedPos = CCoordObj.RotatePoint(summedPos, face.parentObject.cPos, face.parentObject.cRot);
-                RenderPosition((int)Math.Round(rotatedPos.xPos + sPos.xPos), (int)Math.Round(rotatedPos.yPos + sPos.yPos));
-                //reset object position
-                face.parentObject.cPos = sPos;
+                for (int i = 0; i < face.vertices.Count; i++)
+                {
+                    //move object to center before rotating
+                    //TODO: rotate before summing, avoid having to move object
+                    var sPos = face.parentObject.cPos;
+                    face.parentObject.cPos = new CCoordObj(0, 0, 0);
+                    var pos = face.vertices[i];
+                    var summedPos = new CCoordObj(pos.xPos + face.parentObject.cPos.xPos, pos.yPos + face.parentObject.cPos.yPos, pos.zPos + face.parentObject.cPos.zPos);
+                    //rotate vert around object center
+                    var rotatedPos = CCoordObj.RotatePoint(summedPos, face.parentObject.cRot);
+                    RenderPosition((int)Math.Round(rotatedPos.xPos + sPos.xPos), (int)Math.Round(rotatedPos.yPos + sPos.yPos));
+                    //reset object position
+                    face.parentObject.cPos = sPos;
+                }
+            }
+            if (renderMode == 2)
+            {
+                //establish bounding box
+                var lowX = 0;
+                var lowY = 0;
+                var highX = 0;
+                var highY = 0;
+                for (int i = 0; i < face.vertices.Count; i++)
+                {
+                    //move object to center before rotating
+                    var rotatedPos = CCoordObj.RotatePoint(face.vertices[i], face.parentObject.cRot);
+                    if (rotatedPos.xPos < lowX)
+                    {
+                        lowX = (int)Math.Round(rotatedPos.xPos);
+                    }
+                    if (rotatedPos.yPos < lowY)
+                    {
+                        lowY = (int)Math.Round(rotatedPos.yPos);
+                    }
+                    if (rotatedPos.xPos > highX)
+                    {
+                        highX = (int)Math.Round(rotatedPos.xPos);
+                    }
+                    if (rotatedPos.yPos > highY)
+                    {
+                        highY = (int)Math.Round(rotatedPos.yPos);
+                    }
+                }
+                Console.WriteLine(lowX + "lx " + lowY + "ly " + highX + "hx " + highY + "hy");
+                for (int r = lowY; r < highY + 1; r++)
+                {
+                    for (int c = lowX; c < highX + 1; c++)
+                    {
+                        //TODO: REIMPLEMENT CORNER HIGHLIGHTS
+                        //bool isVert = false;
+                        //foreach (var v in face.vertices)
+                        //{
+                        //    var rotatedPos = CCoordObj.RotatePoint(v, face.parentObject.cRot);
+                        //    if (c == (int)Math.Round(rotatedPos.xPos) && r == (int)Math.Round(rotatedPos.yPos))
+                        //    {
+                        //        isVert = true;
+                        //    }
+                        //}
+                        if (CCoordObj.PointInFace(face.vertices, new CCoordObj(c, r, 0)))
+                        {
+                            //need to calculate Z position at location in plane
+                            var rotatedPos = CCoordObj.RotatePoint(new CCoordObj(c,r,0),face.parentObject.cRot);
+                            RenderPosition(c + (int)Math.Round(rotatedPos.xPos), r + (int)Math.Round(rotatedPos.yPos));
+                        }
+                    }
+                }
             }
         }
         //draw at position
@@ -172,7 +263,7 @@ namespace _3d_rendering
             yPos = y;
             zPos = z;
         }
-        public static CCoordObj RotatePoint(CCoordObj point, CCoordObj center, CCoordObj rotation)
+        public static CCoordObj RotatePoint(CCoordObj point, CCoordObj rotation)
         {
             var cosa = Math.Cos(CCoordObj.DegreesToRadians(-rotation.xPos));
             var sina = Math.Sin(CCoordObj.DegreesToRadians(-rotation.xPos));
@@ -198,7 +289,25 @@ namespace _3d_rendering
             var endRot = new CCoordObj(Axx * point.xPos + Axy * point.yPos + Axz * point.zPos, Ayx * point.xPos + Ayy * point.yPos + Ayz * point.zPos, Azx * point.xPos + Azy * point.yPos + Azz * point.zPos);
             return endRot;
         }
+        public static bool PointInFace(List<CCoordObj> face, CCoordObj point)
+        {
+            var i = 0;
+            var j = 0;
+            bool c = false;
+            for (i = 0, j = face.Count - 1; i < face.Count; j = i++)
+            {
+                if ((((face[i].yPos <= point.yPos) && (point.yPos < face[j].yPos))
+                        || ((face[j].yPos <= point.yPos) && (point.yPos < face[i].yPos)))
+                        && (point.xPos < (face[j].xPos - face[i].xPos) * (point.yPos - face[i].yPos)
+                            / (face[j].yPos - face[i].yPos) + face[i].xPos))
+                {
 
+                    c = !c;
+                }
+            }
+
+            return c;
+        }
         public static double DegreesToRadians(double degrees)
         {
             double radians = (Math.PI / 180) * degrees;
