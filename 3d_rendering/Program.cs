@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace _3d_rendering
@@ -177,6 +178,49 @@ namespace _3d_rendering
                     face.parentObject.cPos = sPos;
                 }
             }
+            if (renderMode == 1)
+            {
+                //establish bounding box
+                var lowX = 0;
+                var lowY = 0;
+                var highX = 0;
+                var highY = 0;
+                for (int i = 0; i < face.vertices.Count; i++)
+                {
+                    //move object to center before rotating
+                    var rotatedPos = CCoordObj.RotatePoint(face.vertices[i], face.parentObject.cRot);
+                    if (rotatedPos.xPos < lowX)
+                    {
+                        lowX = (int)Math.Round(rotatedPos.xPos);
+                    }
+                    if (rotatedPos.yPos < lowY)
+                    {
+                        lowY = (int)Math.Round(rotatedPos.yPos);
+                    }
+                    if (rotatedPos.xPos > highX)
+                    {
+                        highX = (int)Math.Round(rotatedPos.xPos);
+                    }
+                    if (rotatedPos.yPos > highY)
+                    {
+                        highY = (int)Math.Round(rotatedPos.yPos);
+                    }
+                }
+                var r1 = CCoordObj.RotatePoint(face.vertices[0], face.parentObject.cRot);
+                var r2 = CCoordObj.RotatePoint(face.vertices[1], face.parentObject.cRot);
+                var line = FindLine(r1, r2);
+                Console.WriteLine(line.Count);
+                for (int r = lowY -1; r < highY + 2; r++)
+                {
+                    for (int c = lowX -1; c < highX + 2; c++)
+                    {
+                        if (line.Contains(new CCoordObj(c, r, 0)))
+                        {
+                            RenderPosition(c + (int)Math.Round(face.parentObject.cPos.xPos), r + (int)Math.Round(face.parentObject.cPos.yPos));
+                        }
+                    }
+                }
+            }
             if (renderMode == 2)
             {
                 //establish bounding box
@@ -205,30 +249,31 @@ namespace _3d_rendering
                         highY = (int)Math.Round(rotatedPos.yPos);
                     }
                 }
-                Console.WriteLine(lowX + "lx " + lowY + "ly " + highX + "hx " + highY + "hy");
                 for (int r = lowY; r < highY + 1; r++)
                 {
                     for (int c = lowX; c < highX + 1; c++)
                     {
-                        //TODO: REIMPLEMENT CORNER HIGHLIGHTS
-                        //bool isVert = false;
-                        //foreach (var v in face.vertices)
-                        //{
-                        //    var rotatedPos = CCoordObj.RotatePoint(v, face.parentObject.cRot);
-                        //    if (c == (int)Math.Round(rotatedPos.xPos) && r == (int)Math.Round(rotatedPos.yPos))
-                        //    {
-                        //        isVert = true;
-                        //    }
-                        //}
                         if (CCoordObj.PointInFace(face.vertices, new CCoordObj(c, r, 0)))
                         {
                             //need to calculate Z position at location in plane
-                            var rotatedPos = CCoordObj.RotatePoint(new CCoordObj(c,r,0),face.parentObject.cRot);
+                            //need to add parent object position to child
+                            var rotatedPos = CCoordObj.RotatePoint(new CCoordObj(c, r, 0), face.parentObject.cRot);
                             RenderPosition(c + (int)Math.Round(rotatedPos.xPos), r + (int)Math.Round(rotatedPos.yPos));
+                            //TODO: REIMPLEMENT CORNER HIGHLIGHTS
+                            //bool isVert = false;
+                            //foreach (var v in face.vertices)
+                            //{
+                            //    var rotatedPos = CCoordObj.RotatePoint(v, face.parentObject.cRot);
+                            //    if (c == (int)Math.Round(rotatedPos.xPos) && r == (int)Math.Round(rotatedPos.yPos))
+                            //    {
+                            //        isVert = true;
+                            //    }
+                            //}
                         }
                     }
                 }
             }
+            
         }
         //draw at position
         void RenderPosition(int x, int y)
@@ -244,6 +289,21 @@ namespace _3d_rendering
             Console.CursorTop = 100 - y;
             Console.CursorLeft = x;
             Console.WriteLine(text);
+        }
+        List<CCoordObj> FindLine(CCoordObj point1, CCoordObj point2)
+        {
+
+            var points = new List<CCoordObj>();
+            var diagonalDistance = Math.Sqrt(Math.Pow(point2.xPos - point1.xPos, 2) + Math.Pow(point2.yPos - point1.yPos, 2));
+            for (int i = 0; i < diagonalDistance; i++)
+            {
+                var t = i / diagonalDistance;
+                var lp = Vector2.Lerp(new Vector2((float)point1.xPos,(float)point1.yPos), new Vector2((float)point1.xPos,(float)point2.yPos), (float)t);
+                var outL = new CCoordObj((int)Math.Round(lp.X), (int)Math.Round(lp.Y),0);
+                points.Add(outL);
+            }
+            return points;
+
         }
     }
     class RenderObject
